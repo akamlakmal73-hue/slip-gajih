@@ -1,4 +1,4 @@
-const CACHE = 'slipgaji-v1';
+const CACHE = 'slipgaji-v2';
 const FILES = ['./', './index.html', './style.css', './app.js', './logo.png', './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
 
