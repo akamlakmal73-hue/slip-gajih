@@ -1,4 +1,4 @@
-const CACHE = 'slipgaji-v2';
+const CACHE = 'slipgaji-v7';
 const FILES = ['./', './index.html', './style.css', './app.js', './logo.png', './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
 
@@ -10,6 +10,14 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))));
   self.clients.claim();
 });
+// Utamakan versi terbaru dari internet; kalau offline baru pakai cache
 self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request).then(r => {
+      const copy = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      return r;
+    }).catch(() => caches.match(e.request))
+  );
 });
