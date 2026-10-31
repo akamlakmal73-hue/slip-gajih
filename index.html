@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#F1ECE4">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Slip Gaji Bunayya</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top"><h1>Hi, Nisa.</h1><p>Semoga hari mu menyenangkan :)</p><div class="bar"></div><small id="sub">Slip Gaji Bunayya</small></header>
+<div class="wrap">
+
+<!-- BERANDA -->
+<section id="home">
+  <h2>Pilih Cabang</h2>
+  <div class="tiles">
+    <button class="tile g" onclick="pilihCabang('pwk_kiloan')"><i><svg viewBox="0 0 24 24"><path d="M8.5 3.5L3 6.5l2 4 2.5-1V20.5h9V9.5l2.5 1 2-4-5.5-3c-.6 1.4-1.9 2.2-3.5 2.2S9.1 4.9 8.5 3.5z"/></svg></i><span>Purwokerto Kiloan</span></button>
+    <button class="tile a" onclick="pilihCabang('pwk_self')"><i><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.2"/><path d="M8 6h.01M11 6h4"/></svg></i><span>Purwokerto Self Service</span></button>
+    <button class="tile b" onclick="pilihCabang('cil_self')"><i><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.2"/><path d="M8 6h.01M11 6h4"/></svg></i><span>Cileungsi Self Service</span></button>
+  </div>
+</section>
+
+<!-- FORM -->
+<section id="form" class="hide">
+  <button class="o s" onclick="ke('home')">← Ganti cabang</button>
+
+  <h2>Cabang</h2>
+  <div class="card glass">
+    <label>Alamat cabang (tampil di slip)</label>
+    <input id="alamatCabang" placeholder="Alamat lengkap cabang">
+  </div>
+
+  <h2>Karyawan</h2>
+  <div class="card glass">
+    <label>Pilih dari daftar tersimpan</label>
+    <select id="pilih" onchange="pakaiKaryawan(this.value)"></select>
+    <label>Nama</label><input id="nama" placeholder="Nama karyawan">
+    <label>Jabatan</label><input id="jabatan" placeholder="Contoh: Kasir">
+    <label>No. Telp</label><input id="telp" type="tel" inputmode="tel" placeholder="08xx xxxx xxxx">
+    <label>Masa kerja</label>
+    <select id="masa" onchange="ubahMasa()">
+      <option value="kurang3">Kurang dari 3 bulan</option>
+      <option value="3-12">3 bulan - 1 tahun</option>
+      <option value="lebih12">Lebih dari 1 tahun</option>
+    </select>
+    <div class="row2"><button class="o s" onclick="simpanKaryawan()">Simpan Karyawan</button><button class="o s" onclick="hapusKaryawan()">Hapus</button></div>
+  </div>
+
+  <h2>Data Slip</h2>
+  <div class="card glass">
+    <label>Periode</label><input id="periode" placeholder="Contoh: Oktober 2026">
+    <label>Tanggal slip</label><input id="tanggal" type="date">
+    <label>Jenis slip</label>
+    <select id="jenis"><option value="15">Tanggal 15</option><option value="30">Tanggal 30</option></select>
+    <div class="g2">
+      <div><label>Hari kerja</label><input id="hk" type="number" inputmode="numeric" min="0"></div>
+      <div><label>Libur diambil (hari)</label><input id="libur" type="number" inputmode="numeric" min="0"></div>
+    </div>
+    <label>Jumlah jam lembur</label><input id="jam" type="number" inputmode="decimal" min="0">
+  </div>
+
+  <h2>Tarif (otomatis, bisa diedit)</h2>
+  <div class="card glass">
+    <div class="g2">
+      <div><label>Gaji Pokok</label><input id="t_gp" type="number" inputmode="numeric"></div>
+      <div><label>Uang Makan / hari</label><input id="t_um" type="number" inputmode="numeric"></div>
+      <div><label>Transport / hari</label><input id="t_tr" type="number" inputmode="numeric"></div>
+      <div><label>Lembur / jam</label><input id="t_lembur" type="number" inputmode="numeric"></div>
+    </div>
+    <label>Ganti libur tidak diambil / hari</label><input id="t_ganti" type="number" inputmode="numeric">
+  </div>
+
+  <h2 id="hManual">Bonus</h2>
+  <div class="card glass" id="manual"></div>
+
+  <h2>Potongan Tambahan</h2>
+  <div class="card glass"><div id="potList"></div><button class="o" onclick="tambahPot()">+ Tambah Potongan</button></div>
+
+  <div class="bersih">Gaji Bersih<b id="bersih">Rp 0</b></div>
+  <button onclick="lihat()">Lihat Slip</button>
+  <button class="o mt" onclick="simpanSlip()">Simpan ke Riwayat</button>
+
+  <h2>Riwayat Slip (nama ini)</h2>
+  <div class="card glass" id="riwayat"></div>
+</section>
+
+<!-- PREVIEW -->
+<section id="prev" class="hide">
+  <button class="o s" onclick="ke('form')">← Kembali ke form</button>
+  <h2>Preview Slip</h2>
+  <div id="paper"></div>
+  <button onclick="unduhPDF()">Download PDF</button>
+  <button class="o mt" onclick="kirimWA()">Kirim WhatsApp</button>
+</section>
+
+</div>
+<div class="foot"><img alt="Analica" src="logo.png"><span>aplikasi by @analica.project</span></div>
+<div id="toast"></div>
+
+<script src="app.js"></script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js")}</script>
+</body>
+</html>
