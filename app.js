@@ -1,9 +1,10 @@
 /* ===== Data master per cabang ===== */
 const JATAH_LIBUR = 2;
+const PEMILIK = "Chory Mufti Abidin"; // nama pemilik yang tampil di tanda tangan slip (ganti di sini)
 const DO = [["uangDO","Uang DO"]];
 const CABANG = {
   pwk_kiloan: { nama:"Purwokerto Kiloan", manual:[["bonusOrang","Bonus Per Orang"],["bonusCabang","Bonus Per Cabang"]],
-    gp:[700000,800000], um:[10000,15000], tr:10000, lembur:5000, ganti:40000 },
+    gp:[700000,800000], um:[10000,15000], tr:0, tanpaTr:true, lembur:5000, ganti:40000 },
   pwk_self:   { nama:"Purwokerto Self Service", manual:DO,
     gp:[900000,900000], um:[10000,10000], tr:10000, lembur:5000, ganti:50000 },
   cil_self:   { nama:"Cileungsi Self Service", manual:DO,
@@ -68,10 +69,11 @@ function pilihCabang(k){
   $("manual").innerHTML = CABANG[k].manual.map(([id,l]) =>
     `<label>${l} (Rp)</label><input id="m_${id}" type="number" inputmode="numeric" min="0">`).join("");
   $("alamatCabang").value = DB.alamat[k] || "";
+  $("t_tr").parentElement.classList.toggle("hide", !!CABANG[k].tanpaTr);
   isiForm(S.form);
   isiTarif(); renderPilih(); renderPot(); renderRiwayat(); baca(); ke("form");
 }
-function ubahMasa(){ S.form.masa = $("masa").value; isiTarif(); }
+function ubahMasa(){ S.form.masa = $("masa").value; isiTarif(); baca(); }
 function isiForm(f){ f.tanggal = f.tanggal || hariIni(); [...TEKS,...ANGKA].forEach(k=>$(k).value=f[k]); }
 /* satu pendengar untuk semua kolom di form (tidak perlu oninput di tiap kolom) */
 ["input","change"].forEach(e=>$("form").addEventListener(e,baca));
@@ -92,18 +94,16 @@ function baca(){
 /* ===== Perhitungan gaji ===== */
 function hitung(){
   const f=S.form, t=S.tarif, P=[], D=[];
+  const c = CABANG[S.cabang];
   const lebih = Math.max(0, f.libur - JATAH_LIBUR), sisa = Math.max(0, JATAH_LIBUR - f.libur);
   P.push({l:"Gaji Pokok", v:t.gp});
-  if (f.jenis === "30") {
-    if (lebih) D.push({l:`Potongan GP libur lebih ${lebih} hari`, v:t.gp/30*lebih});
-  } else {
-    P.push({l:`Uang Makan (${f.hk} hari)`, v:t.um*f.hk});
-    P.push({l:`Uang Transport (${f.hk} hari)`, v:t.tr*f.hk});
-    P.push({l:`Lembur (${f.jam} jam)`, v:t.lembur*f.jam});
-    if (sisa) P.push({l:`Libur tidak diambil (${sisa} hari)`, v:t.ganti*sisa});
-    CABANG[S.cabang].manual.forEach(([id,l]) => P.push({l, v:S.manual[id]||0}));
-    if (lebih) D.push({l:`Potongan UM+Transport libur lebih ${lebih} hari`, v:(t.um+t.tr)*lebih});
-  }
+  // Slip tanggal 15 dan 30 memakai kolom & rumus yang sama
+  P.push({l:`Uang Makan (${f.hk} hari)`, v:t.um*f.hk});
+  if (!c.tanpaTr) P.push({l:`Uang Transport (${f.hk} hari)`, v:t.tr*f.hk});
+  P.push({l:`Lembur (${f.jam} jam)`, v:t.lembur*f.jam});
+  if (sisa) P.push({l:`Libur tidak diambil (${sisa} hari)`, v:t.ganti*sisa});
+  CABANG[S.cabang].manual.forEach(([id,l]) => P.push({l, v:S.manual[id]||0}));
+  if (lebih) D.push({l: c.tanpaTr ? `Potongan Uang Makan libur lebih ${lebih} hari` : `Potongan UM+Transport libur lebih ${lebih} hari`, v:(t.um+(c.tanpaTr?0:t.tr))*lebih});
   S.potongan.forEach(p => { if (p.nominal>0 || p.nama) D.push({l:p.nama||"Potongan", v:p.nominal}); });
   const tp = P.reduce((a,x)=>a+x.v,0), td = D.reduce((a,x)=>a+x.v,0);
   return { P, D, total:tp, potong:td, bersih:tp-td };
@@ -197,7 +197,7 @@ function lihat(){
     <div class="tr tot"><span>(-)</span><span>-${n0(h.potong)}</span></div>` : ""}
     <div class="tx"><i>${esc(terbilang(h.bersih))}</i>
       <div class="r"><span>Total Diterima:</span><span>Rp ${n0(h.bersih)}</span></div></div>
-    <div class="sg">Mengetahui<div class="sp"></div>Pemilik Toko<br>Bunayya</div>
+    <div class="sg">Mengetahui<div class="sp"></div>Pemilik Toko<br>${esc(PEMILIK)}</div>
   </div>`;
   ke("prev");
 }
@@ -272,7 +272,7 @@ function gambarPDF(k,ukur){
   // Tanda tangan
   d.setFont("helvetica","normal"); d.setFontSize(s(10));
   d.text("Mengetahui",mx+3,y); y+=s(20);
-  d.text("Pemilik Toko",mx+3,y); d.text("Bunayya",mx+3,y+s(5));
+  d.text("Pemilik Toko",mx+3,y); d.text(PEMILIK,mx+3,y+s(5));
 
   const nama = "Slip-"+(f.nama||"karyawan").replace(/[^\w-]+/g,"_")+"-"+(f.periode||"").replace(/[^\w-]+/g,"_")+".pdf";
   return {d, nama, yEnd:y+s(5)};
