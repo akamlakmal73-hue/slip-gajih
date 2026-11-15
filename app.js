@@ -70,7 +70,6 @@ function pilihCabang(k){
     `<label>${l} (Rp)</label><input id="m_${id}" type="number" inputmode="numeric" min="0">`).join("");
   $("alamatCabang").value = DB.alamat[k] || "";
   $("t_tr").parentElement.classList.toggle("hide", !!CABANG[k].tanpaTr);
-  $("bonusWrap").classList.toggle("hide", !k.endsWith("_self"));
   isiForm(S.form);
   isiTarif(); renderPilih(); renderPot(); renderBonus(); renderRiwayat(); baca(); ke("form");
 }
