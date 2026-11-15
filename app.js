@@ -1,7 +1,7 @@
 /* ===== Data master per cabang ===== */
 const JATAH_LIBUR = 2;
 const PEMILIK = "Chory Mufti Abidin"; // nama pemilik yang tampil di tanda tangan slip (ganti di sini)
-const DO = [["uangDO","Uang DO"],["bonusCabang","Bonus Per Cabang"],["bonusLain","Bonus Lainnya"]];
+const DO = [["uangDO","Uang DO"],["bonusCabang","Bonus Per Cabang"]];
 const CABANG = {
   pwk_kiloan: { nama:"Purwokerto Kiloan", manual:[["bonusOrang","Bonus Per Orang"],["bonusCabang","Bonus Per Cabang"]],
     gp:[700000,800000], um:[10000,15000], tr:0, tanpaTr:true, lembur:5000, ganti:40000 },
@@ -45,7 +45,7 @@ function terbilang(n){
 
 /* ===== State ===== */
 const formAwal = () => ({periode:"",tanggal:hariIni(),hk:26,nama:"",jabatan:"",telp:"",jenis:"15",masa:"kurang3",libur:0,jam:0});
-let S = { cabang:null, form:formAwal(), tarif:{}, manual:{}, potongan:[] };
+let S = { cabang:null, form:formAwal(), tarif:{}, manual:{}, potongan:[], bonus:[] };
 
 /* ===== Penyimpanan lokal ===== */
 const KEY = "bunayya_slip_v1";
@@ -63,15 +63,16 @@ function isiTarif(){ S.tarif = tarifOtomatis(); for (const k in S.tarif) $("t_"+
 
 /* ===== Navigasi ===== */
 function pilihCabang(k){
-  S.cabang = k; S.manual = {}; S.potongan = []; S.form = formAwal();
+  S.cabang = k; S.manual = {}; S.potongan = []; S.bonus = []; S.form = formAwal();
   $("sub").textContent = CABANG[k].nama;
   $("hManual").textContent = CABANG[k].manual.map(x=>x[1]).join(" / ") + " (isi manual)";
   $("manual").innerHTML = CABANG[k].manual.map(([id,l]) =>
     `<label>${l} (Rp)</label><input id="m_${id}" type="number" inputmode="numeric" min="0">`).join("");
   $("alamatCabang").value = DB.alamat[k] || "";
   $("t_tr").parentElement.classList.toggle("hide", !!CABANG[k].tanpaTr);
+  $("bonusWrap").classList.toggle("hide", !k.endsWith("_self"));
   isiForm(S.form);
-  isiTarif(); renderPilih(); renderPot(); renderRiwayat(); baca(); ke("form");
+  isiTarif(); renderPilih(); renderPot(); renderBonus(); renderRiwayat(); baca(); ke("form");
 }
 function ubahMasa(){ S.form.masa = $("masa").value; isiTarif(); baca(); }
 function isiForm(f){ f.tanggal = f.tanggal || hariIni(); [...TEKS,...ANGKA].forEach(k=>$(k).value=f[k]); }
@@ -103,6 +104,7 @@ function hitung(){
   P.push({l:`Lembur (${f.jam} jam)`, v:t.lembur*f.jam});
   if (sisa) P.push({l:`Libur tidak diambil (${sisa} hari)`, v:t.ganti*sisa});
   CABANG[S.cabang].manual.forEach(([id,l]) => P.push({l, v:S.manual[id]||0}));
+  S.bonus.forEach(b => { if (b.nominal>0 || b.nama) P.push({l:b.nama||"Bonus", v:b.nominal}); });
   if (lebih) D.push({l: c.tanpaTr ? `Potongan Uang Makan libur lebih ${lebih} hari` : `Potongan UM+Transport libur lebih ${lebih} hari`, v:(t.um+(c.tanpaTr?0:t.tr))*lebih});
   S.potongan.forEach(p => { if (p.nominal>0 || p.nama) D.push({l:p.nama||"Potongan", v:p.nominal}); });
   const tp = P.reduce((a,x)=>a+x.v,0), td = D.reduce((a,x)=>a+x.v,0);
@@ -116,6 +118,15 @@ function renderPot(){
     `<div class="pot"><input placeholder="Nama potongan" value="${esc(p.nama)}" oninput="S.potongan[${i}].nama=this.value">
      <input type="number" inputmode="numeric" placeholder="Rp" value="${p.nominal||""}" oninput="S.potongan[${i}].nominal=num(this.value)">
      <button onclick="S.potongan.splice(${i},1);renderPot();baca()" aria-label="Hapus">✕</button></div>`).join("");
+}
+
+/* ===== Bonus tambahan (nama bebas) ===== */
+function tambahBonus(){ S.bonus.push({nama:"",nominal:0}); renderBonus(); }
+function renderBonus(){
+  $("bonusList").innerHTML = S.bonus.map((p,i)=>
+    `<div class="pot"><input placeholder="Nama bonus" value="${esc(p.nama)}" oninput="S.bonus[${i}].nama=this.value;baca()">
+     <input type="number" inputmode="numeric" placeholder="Rp" value="${p.nominal||""}" oninput="S.bonus[${i}].nominal=num(this.value);baca()">
+     <button onclick="S.bonus.splice(${i},1);renderBonus();baca()" aria-label="Hapus">✕</button></div>`).join("");
 }
 
 /* ===== Data karyawan & riwayat ===== */
@@ -155,7 +166,7 @@ const rkey = () => S.cabang+"|"+S.form.nama.toLowerCase();
 function simpanSlip(){
   baca(); if(!S.form.nama){ toast("Isi nama dulu"); return; }
   const h = hitung(), arr = DB.riwayat[rkey()] = DB.riwayat[rkey()] || [];
-  arr.unshift({ tgl:hariIni(), form:{...S.form}, tarif:{...S.tarif}, manual:{...S.manual}, potongan:S.potongan.map(p=>({...p})), bersih:h.bersih });
+  arr.unshift({ tgl:hariIni(), form:{...S.form}, tarif:{...S.tarif}, manual:{...S.manual}, potongan:S.potongan.map(p=>({...p})), bonus:S.bonus.map(p=>({...p})), bersih:h.bersih });
   if (simpanDB()) { renderRiwayat(); toast("Slip masuk riwayat"); }
 }
 function renderRiwayat(){
@@ -167,11 +178,11 @@ function renderRiwayat(){
 }
 function muatRiwayat(i){
   const r = DB.riwayat[rkey()][i];
-  S.form={...formAwal(),...r.form}; S.tarif={...r.tarif}; S.manual={...r.manual}; S.potongan=r.potongan.map(p=>({...p}));
+  S.form={...formAwal(),...r.form}; S.tarif={...r.tarif}; S.manual={...r.manual}; S.potongan=r.potongan.map(p=>({...p})); S.bonus=(r.bonus||[]).map(p=>({...p}));
   isiForm(S.form);
   for (const k in S.tarif) $("t_"+k).value=S.tarif[k];
   CABANG[S.cabang].manual.forEach(([id])=>$("m_"+id).value=S.manual[id]||"");
-  renderPot(); baca(); toast("Riwayat dimuat");
+  renderPot(); renderBonus(); baca(); toast("Riwayat dimuat");
 }
 function hapusRiwayat(i){ konfirm("Hapus riwayat ini?", ()=>{ DB.riwayat[rkey()].splice(i,1); simpanDB(); renderRiwayat(); }); }
 
