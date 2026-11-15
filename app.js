@@ -1,7 +1,7 @@
 /* ===== Data master per cabang ===== */
 const JATAH_LIBUR = 2;
 const PEMILIK = "Chory Mufti Abidin"; // nama pemilik yang tampil di tanda tangan slip (ganti di sini)
-const DO = [["uangDO","Uang DO"]];
+const DO = [["uangDO","Uang DO"],["bonusCabang","Bonus Per Cabang"],["bonusLain","Bonus Lainnya"]];
 const CABANG = {
   pwk_kiloan: { nama:"Purwokerto Kiloan", manual:[["bonusOrang","Bonus Per Orang"],["bonusCabang","Bonus Per Cabang"]],
     gp:[700000,800000], um:[10000,15000], tr:0, tanpaTr:true, lembur:5000, ganti:40000 },
